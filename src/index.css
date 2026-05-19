@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-app text-ink antialiased font-sans;
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, rgba(124, 92, 255, 0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(236, 72, 153, 0.06), transparent 60%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-app-panel/80 border border-app-border/80 rounded-2xl backdrop-blur-sm shadow-panel;
+  }
+  .panel-tight {
+    @apply bg-app-panel/80 border border-app-border/80 rounded-xl;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium border;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink-muted hover:text-ink hover:bg-white/5 transition;
+  }
+  .btn-soft {
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm bg-white/5 hover:bg-white/10 text-ink border border-app-border/60 transition;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-violet to-brand-purple hover:brightness-110 transition shadow-glow;
+  }
+}
+
+/* React Flow theme tweaks */
+.react-flow__renderer { background: transparent; }
+.react-flow__background { opacity: 0.5; }
+.react-flow__controls { display: none; }
+.react-flow__attribution { display: none; }
+.react-flow__handle { opacity: 0; }
+.react-flow__edge-path { stroke-width: 1.5; }
