@@ -44,7 +44,7 @@ export function LastConversations() {
         {rows.map((r) => (
           <li
             key={r.id}
-            className="grid grid-cols-[1.4fr_0.8fr_0.9fr_0.7fr] items-center gap-x-4 py-2.5 text-sm"
+            className="-mx-2 grid grid-cols-[1.4fr_0.8fr_0.9fr_0.7fr] items-center gap-x-4 rounded-md px-2 py-2.5 text-sm transition-colors hover:bg-white/[0.03]"
           >
             <span className="text-ink">{r.flow}</span>
             <span className="text-ink-muted tabular-nums">{r.duration}</span>
