@@ -93,16 +93,19 @@ distracting from the implemented surfaces.
 
 ## Backend (bonus)
 
-Express API at `server/`. Full endpoint reference + sample `curl`
-commands live in [`server/README.md`](server/README.md). At a glance:
+Express API at `server/`. At a glance:
 
-| Method | Path                                       | Used by                         |
-|--------|--------------------------------------------|---------------------------------|
-| GET    | `/api/health`                              | sanity check                    |
-| GET    | `/api/metrics/dashboard`                   | (reserved — currently used by `/api/calls` only) |
-| GET    | `/api/workflows/:id`                       | WorkflowCanvas — hydrates the graph on mount |
-| PATCH  | `/api/workflows/:id/steps/:stepId`         | NodePanel — save-on-blur, optimistic update + rollback toast |
-| GET    | `/api/calls?limit&status`                  | LastConversations widget         |
+| Method | Path                                       | Request body                                                                                                | Response                                                                                                | Used by |
+|--------|--------------------------------------------|--------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|---------|
+| GET    | `/api/health`                              | —                                                                                                            | `{ ok: true }`                                                                                           | sanity check |
+| GET    | `/api/metrics/dashboard`                   | —                                                                                                            | `{ flowsDistribution, callHeatmap, lastConversations, callsHandledTotals, callsHandledSeries, totalDurationTotal, totalDurationSeries }` | FlowsDistribution, CallDistribution, MetricCards, CallsHandled, TotalDuration (one shared query) |
+| GET    | `/api/workflows/:id`                       | —                                                                                                            | `Workflow` — `{ id, name, nodes: Node[], edges: Edge[], createdAt, updatedAt }` (404 if not found)        | WorkflowCanvas — hydrates the graph on mount |
+| PATCH  | `/api/workflows/:id/steps/:stepId`         | `{ title?: string, description?: string, primaryOutcome?: Outcome, secondaryOutcome?: Outcome }` (≥1 field)  | Updated step `{ id, type, position, data }` · 400 invalid body · 404 step/workflow not found              | NodePanel — save-on-blur PATCH with success / fail toast |
+| GET    | `/api/calls?limit&status`                  | —                                                                                                            | `CallRecord[]` — `{ id, flow, duration, time, status: "success" \| "hangup" }[]`                          | LastConversations widget |
+
+All errors come back as `{ "error": "message" }`. Full request/response
+JSON examples + `curl` commands live in
+[`server/README.md`](server/README.md).
 
 Storage is in-memory only — edits survive while the server runs and reset
 on restart.
