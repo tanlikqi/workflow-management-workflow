@@ -1,10 +1,10 @@
 # Revolab — Workflow Management
 
-Frontend take-home for Revolab. An AI-powered call centre platform where
-operators build call routing flows, monitor live analytics, and manage
-conversation outcomes. Replicates the two reference screens from the
-brief (admin dashboard + workflow builder) as a fully interactive React
-single-page app.
+Take-home for Revolab. An AI-powered call centre platform where operators
+build call routing flows, monitor live analytics, and manage conversation
+outcomes. Replicates the two reference screens (admin dashboard + workflow
+builder) as a fully interactive React SPA, with a lightweight Express
+backend for the bonus track.
 
 ## Quick start
 
@@ -13,30 +13,45 @@ npm install
 npm run dev
 ```
 
-The app boots on the URL Vite prints (usually `http://localhost:5173`).
-Open it and you'll land on the Dashboard. Click the **Workflows** tab to
-see the canvas + node panel.
+That boots **both** processes in parallel via `concurrently`:
+
+- **client** on `http://localhost:5173` (Vite)
+- **server** on `http://localhost:3001` (Express + tsx watch)
+
+Vite proxies `/api/*` to the server, so the React app talks to `/api/...`
+directly. Open the client URL and you'll land on the Dashboard.
 
 ## Scripts
 
-| Command           | What it does                                    |
-|-------------------|-------------------------------------------------|
-| `npm run dev`     | Vite dev server with HMR                        |
-| `npm run build`   | Type-check (`tsc -b`) + production build         |
-| `npm run preview` | Serve the production build locally              |
-| `npm run lint`    | Type-only lint via `tsc -b --noEmit`            |
+| Command              | What it does                                      |
+|----------------------|---------------------------------------------------|
+| `npm run dev`        | Client (Vite) + server (Express) in parallel      |
+| `npm run dev:client` | Frontend only                                     |
+| `npm run dev:server` | API only                                          |
+| `npm run build`      | Type-check (`tsc -b`) + production frontend build |
+| `npm run preview`    | Serve the production build locally                |
+| `npm run lint`       | Type-only lint via `tsc -b --noEmit` (both)       |
 
 ## Tech stack
 
+### Frontend
 - **React 18** + **TypeScript** (strict)
 - **Vite 5** — dev server / build
 - **Tailwind CSS 3** — styling, with a small set of brand tokens
 - **Zustand** — UI store (toasts) + workflow store (graph + selection)
 - **React Router v6** — one route per tab
+- **TanStack Query v5** — server-state caching, loading / error states,
+  optimistic mutations
 - **Recharts** — donut, line charts
 - **@xyflow/react (React Flow v12)** — workflow canvas
 - **lucide-react** — icons
 - **clsx + tailwind-merge + class-variance-authority** — class composition
+
+### Backend
+- **Node.js 20 + Express 4 + TypeScript**
+- **Zod** — request validation + inferred types (single source of truth)
+- **tsx** — TS runner with watch mode
+- In-memory store seeded from the same data the frontend mocks use
 
 ## What's implemented
 
@@ -76,21 +91,46 @@ see the canvas + node panel.
 gradient-icon empty state. They keep the tab bar functional without
 distracting from the implemented surfaces.
 
+## Backend (bonus)
+
+Express API at `server/`. Full endpoint reference + sample `curl`
+commands live in [`server/README.md`](server/README.md). At a glance:
+
+| Method | Path                                       | Used by                         |
+|--------|--------------------------------------------|---------------------------------|
+| GET    | `/api/health`                              | sanity check                    |
+| GET    | `/api/metrics/dashboard`                   | (reserved — currently used by `/api/calls` only) |
+| GET    | `/api/workflows/:id`                       | WorkflowCanvas — hydrates the graph on mount |
+| PATCH  | `/api/workflows/:id/steps/:stepId`         | NodePanel — save-on-blur, optimistic update + rollback toast |
+| GET    | `/api/calls?limit&status`                  | LastConversations widget         |
+
+Storage is in-memory only — edits survive while the server runs and reset
+on restart.
+
 ## Project structure
 
 ```
-src/
-  lib/                  cn() helper (clsx + tailwind-merge)
-  data/                 mock data (dashboard + workflow graph)
+src/                    frontend (React + Vite)
+  lib/                  cn() helper + apiFetch helper
+  data/                 mock data (dashboard fallback + workflow types)
   store/                zustand stores (UI toasts, workflow graph)
   components/
     ui/                 Button, Badge, Card, Toast, Select, IconTile
     layout/             Sidebar, TopBar, AppShell
-    dashboard/          dashboard widgets (DashboardHeader, FlowsDistribution, ...)
+    dashboard/          dashboard widgets (FlowsDistribution, ...)
     workflow/           WorkflowCanvas, NodePanel, ZoomControls, nodes/
   pages/                DashboardPage, WorkflowsPage, PlaceholderPage
   App.tsx               routes
-  main.tsx              entry point + BrowserRouter
+  main.tsx              entry point + BrowserRouter + QueryClientProvider
+
+server/                 backend (Express + Zod)
+  src/
+    index.ts            Express bootstrap, route mounting
+    schemas.ts          Zod schemas + inferred types
+    db.ts               in-memory store + accessors
+    middleware/         Zod request validator
+    routes/             workflows / metrics / calls
+  README.md             endpoint reference
 ```
 
 ## State management at a glance

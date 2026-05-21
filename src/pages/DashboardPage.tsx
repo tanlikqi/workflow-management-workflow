@@ -1,15 +1,20 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { FlowsDistribution } from "@/components/dashboard/FlowsDistribution";
 import { CallDistribution } from "@/components/dashboard/CallDistribution";
-import { MetricCard } from "@/components/dashboard/MetricCard";
+import { MetricCard, MetricCardSkeleton } from "@/components/dashboard/MetricCard";
 import { LastConversations } from "@/components/dashboard/LastConversations";
 import { CallsHandled } from "@/components/dashboard/CallsHandled";
 import { TotalDuration } from "@/components/dashboard/TotalDuration";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { AiBanner } from "@/components/dashboard/AiBanner";
-import { flowsDistribution } from "@/data/mock";
+import { useDashboardMetrics } from "@/lib/queries";
+
+const fallbackLabels = ["Food delivery", "Table reservation", "Payment processing", "Other flows"];
 
 export default function DashboardPage() {
+  const { data, isLoading } = useDashboardMetrics();
+  const flows = data?.flowsDistribution ?? [];
+
   return (
     <div className="flex flex-col gap-4 pb-6">
       <DashboardHeader />
@@ -22,15 +27,21 @@ export default function DashboardPage() {
           <CallDistribution />
         </div>
 
-        {flowsDistribution.map((flow) => (
-          <div key={flow.key} className="col-span-12 sm:col-span-6 lg:col-span-3">
-            <MetricCard
-              label={flow.label}
-              count={flow.count}
-              trend={flow.trend}
-            />
-          </div>
-        ))}
+        {isLoading || flows.length === 0
+          ? fallbackLabels.map((label) => (
+              <div key={label} className="col-span-12 sm:col-span-6 lg:col-span-3">
+                <MetricCardSkeleton label={label} />
+              </div>
+            ))
+          : flows.map((flow) => (
+              <div key={flow.key} className="col-span-12 sm:col-span-6 lg:col-span-3">
+                <MetricCard
+                  label={flow.label}
+                  count={flow.count}
+                  trend={flow.trend}
+                />
+              </div>
+            ))}
 
         <div className="col-span-12 lg:col-span-5">
           <LastConversations />

@@ -10,6 +10,23 @@ export interface MetricCardProps {
   comparison?: string;
 }
 
+export function MetricCardSkeleton({ label }: { label?: string }) {
+  return (
+    <Card className="p-5">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+        {label ?? <span className="inline-block h-3 w-24 animate-pulse rounded bg-white/5" />}
+      </div>
+      <div className="mt-3">
+        <span className="inline-block h-8 w-16 animate-pulse rounded bg-white/5" />
+      </div>
+      <div className="mt-4 flex items-center justify-between">
+        <span className="inline-block h-4 w-12 animate-pulse rounded bg-white/5" />
+        <span className="inline-block h-3 w-16 animate-pulse rounded bg-white/5" />
+      </div>
+    </Card>
+  );
+}
+
 export function MetricCard({
   label,
   count,

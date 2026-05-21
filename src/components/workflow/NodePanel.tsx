@@ -2,11 +2,15 @@ import { useMemo, useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { IconTile } from "@/components/ui/IconTile";
 import { NodeIcon } from "@/components/workflow/nodeIcons";
+import { WORKFLOW_ID } from "@/components/workflow/WorkflowCanvas";
+import { useUiStore } from "@/store/useUiStore";
 import { useWorkflowStore } from "@/store/useWorkflowStore";
 import { cn } from "@/lib/cn";
 
 const tabs = ["Purpose", "Behavior", "Rules", "Resources"] as const;
 type Tab = (typeof tabs)[number];
+
+type EditableField = "title" | "description";
 
 export function NodePanel() {
   const selectedId = useWorkflowStore((s) => s.selectedNodeId);
@@ -14,8 +18,10 @@ export function NodePanel() {
   const edges = useWorkflowStore((s) => s.edges);
   const selectNode = useWorkflowStore((s) => s.selectNode);
   const updateNode = useWorkflowStore((s) => s.updateNode);
+  const pushToast = useUiStore((s) => s.pushToast);
 
   const [tab, setTab] = useState<Tab>("Purpose");
+  const [saving, setSaving] = useState(false);
 
   const node = useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
@@ -33,6 +39,33 @@ export function NodePanel() {
   if (!node) return null;
 
   const isStep = node.data.kind === "step";
+
+  const handleBlur = async (field: EditableField) => {
+    if (!node) return;
+    const value = node.data[field];
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `/api/workflows/${WORKFLOW_ID}/steps/${node.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [field]: value }),
+        },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const msg = typeof body?.error === "string" ? body.error : "Save failed";
+        pushToast({ tone: "warning", title: "Save failed", description: msg });
+      } else {
+        pushToast({ tone: "success", title: "Saved" });
+      }
+    } catch {
+      pushToast({ tone: "warning", title: "Save failed" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <aside className="absolute right-4 top-4 bottom-4 z-20 flex w-[360px] flex-col overflow-hidden rounded-2xl border border-app-border/70 bg-app-panel/90 backdrop-blur-md shadow-panel animate-slide-in-right">
@@ -77,7 +110,14 @@ export function NodePanel() {
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-5">
         {tab === "Purpose" && (
-          <PurposeTab node={node} connected={connected} updateNode={updateNode} isStep={isStep} />
+          <PurposeTab
+            node={node}
+            connected={connected}
+            updateNode={updateNode}
+            handleBlur={handleBlur}
+            saving={saving}
+            isStep={isStep}
+          />
         )}
       </div>
     </aside>
@@ -88,19 +128,24 @@ function PurposeTab({
   node,
   connected,
   updateNode,
+  handleBlur,
+  saving,
   isStep,
 }: {
   node: NonNullable<ReturnType<typeof useWorkflowStore.getState>["nodes"][number]>;
   connected: ReturnType<typeof useWorkflowStore.getState>["nodes"];
   updateNode: ReturnType<typeof useWorkflowStore.getState>["updateNode"];
+  handleBlur: (field: EditableField) => void;
+  saving: boolean;
   isStep: boolean;
 }) {
   return (
     <div className="flex flex-col gap-5">
-      <Field label="Step name">
+      <Field label="Step name" hint={saving ? "Saving…" : undefined}>
         <input
           value={node.data.title}
           onChange={(e) => updateNode(node.id, { title: e.target.value })}
+          onBlur={() => handleBlur("title")}
           className="h-9 w-full rounded-lg border border-app-border/70 bg-app-subtle px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand-violet/40"
         />
       </Field>
@@ -110,6 +155,7 @@ function PurposeTab({
           rows={5}
           value={node.data.description}
           onChange={(e) => updateNode(node.id, { description: e.target.value })}
+          onBlur={() => handleBlur("description")}
           className="w-full resize-none rounded-lg border border-app-border/70 bg-app-subtle px-3 py-2 text-sm leading-relaxed text-ink focus:outline-none focus:ring-2 focus:ring-brand-violet/40"
           placeholder={isStep ? "Describe what this step does and how it should behave." : "Trigger nodes start the flow."}
         />
@@ -152,11 +198,22 @@ function PurposeTab({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
-        {label}
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted">
+          {label}
+        </span>
+        {hint && <span className="text-[11px] text-ink-dim">{hint}</span>}
       </div>
       {children}
     </div>
@@ -173,4 +230,3 @@ function OutcomePill({ label, iconKey }: { label: string; iconKey: string }) {
     </div>
   );
 }
-
